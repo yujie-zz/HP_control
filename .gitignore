@@ -58,3 +58,6 @@ dkms.conf
 *.crf
 *.htm
 *.axf
+*.txt
+*.admin
+*.dep

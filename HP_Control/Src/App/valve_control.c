@@ -54,7 +54,7 @@ valve_state_t ValveControl_GetDirectionalValveState(void)
 
 void ValveControl_SetBypassValve(float duty)
 {
-    printf("[VALVE] Bypass Valve: %.2f%% (PWM0_CH0)\r\n", duty);
+    printf("[VALVE] Bypass Valve: %.2f%% (PWM0_CH2)\r\n", duty);
     if (duty < BYPASS_VALVE_MIN_DUTY) duty = BYPASS_VALVE_MIN_DUTY;
     if (duty > BYPASS_VALVE_MAX_DUTY) duty = BYPASS_VALVE_MAX_DUTY;
     
@@ -62,7 +62,7 @@ void ValveControl_SetBypassValve(float duty)
     uint16_t max_count = PWM_DRV_GetMaxCountValue(0); // 使用PWM实例0
     uint16_t count_value = (uint16_t)(max_count * duty / 100.0f);
     printf("[VALVE] PWM Set: MaxCount=%u, CountValue=%u\r\n", max_count, count_value);
-    PWM_DRV_SetChannelCountValue(0, PWM_CH_0, count_value);
+    PWM_DRV_SetChannelCountValue(0, PWM_CH_2, count_value);  // 使用PWM_CH_2 (PC2)
     g_valve_control_data.bypass_valve_duty = duty;
     g_valve_control_data.bypass_valve_state = (duty > 0.0f) ? VALVE_STATE_ON : VALVE_STATE_OFF;
     g_valve_control_data.last_update_time = OSIF_GetMilliseconds();

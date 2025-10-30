@@ -12,6 +12,8 @@
 #include "config.h"
 #include "clock_config.h"
 #include "gpio_drv.h"
+#include "pwm_common.h"
+#include "pwm_output.h"
 #include "sensor.h"
 #include "valve_control.h"
 #include "fault_diagnosis.h"
@@ -21,6 +23,7 @@
 #include "debugout_ac7840x.h"
 #include "osif.h"
 #include <stdio.h>
+#include <string.h>
 
 /* ============================================  Define  ============================================ */
 // PC17启动开关相关宏定义
@@ -28,7 +31,7 @@
 #define START_SWITCH_PIN        17U
 #define START_SWITCH_ON_LEVEL   0U  // 低电平为开
 // 如需强制将启动开关视为"开启"状态，置1
-#define FORCE_START_SWITCH_ON   1
+#define FORCE_START_SWITCH_ON   0
 
 // PC命令超时保护
 #define PC_CMD_TIMEOUT_MS  1000  // 1秒超时
@@ -90,8 +93,8 @@ static void SystemInit(void)
     // 初始化优化任务调度器
     OptimizedTaskScheduler_Init();
     
-    // 启动开关强制为开启状态（按需可改回GPIO检测）
-    g_systemEnabled = true;
+    // 初始为未使能，待接收CAN系统使能后再开启
+    g_systemEnabled = false;
 
     // 上电默认关闭风冷器
     ValveControl_SetCooler(false);
@@ -99,9 +102,12 @@ static void SystemInit(void)
     // 上电默认关闭换向阀
     ValveControl_SetDirectionalValve(false);
     
+    // 上电默认关闭旁通阀
+    ValveControl_SetBypassValve(0.0f);
+    
     // 系统初始化完成确认
     printf("[INIT] System initialization completed\r\n");
-    printf("[INIT] Default state: Cooler=OFF, DirectionalValve=OFF\r\n");
+    printf("[INIT] Default state: Cooler=OFF, DirectionalValve=OFF, BypassValve=0%%\r\n");
 }
 
 /*!
@@ -189,6 +195,8 @@ int main(void)
     printf("[DEBUG] Executing immediate test...\r\n");
     Task_1000ms_CANStatusMonitor();
     Task_2000ms_SensorDataMonitor();
+    
+    // 移除启动自测PWM，避免比例阀上电即开启；如需生产测试请单独编译开关
     
     // CAN发送测试
     printf("\r\n=== CAN TEST MESSAGE ===\r\n");
@@ -426,6 +434,35 @@ static void SystemHardwareInit(void)
     CKGEN_DRV_SoftReset(SRST_PWM0, true); // PWM0软复位
     CKGEN_DRV_SoftReset(SRST_PWM0, false); // PWM0软复位完成
     
+    // 配置PWM0模块 - 旁通阀PWM控制
+    pwm_simply_config_t pwm_config;
+    
+    // 初始化配置结构体
+    memset(&pwm_config, 0, sizeof(pwm_simply_config_t));
+    
+    // 设置基本配置
+    pwm_config.allChCombineMode = PWM_INDEPENDENT_MODE;
+    pwm_config.countMode = PWM_UP_COUNT;
+    pwm_config.levelMode = PWM_LOW_TRUE;
+    pwm_config.clkSource = PWM_CLK_SOURCE_SYSTEM;
+    pwm_config.clkPsc = 1U;
+    pwm_config.initValue = 0U;
+    pwm_config.maxValue = 10000U;  // PWM周期值
+    pwm_config.oddPolarity = PWM_OUTPUT_POLARITY_ACTIVE_HIGH;
+    pwm_config.evenPolarity = PWM_OUTPUT_POLARITY_ACTIVE_HIGH;
+    pwm_config.oddInitLevel = PWM_LOW_LEVEL;
+    pwm_config.evenInitLevel = PWM_LOW_LEVEL;
+    pwm_config.initChOutputEn = (1U << PWM_CH_2);  // 使能通道2输出
+    pwm_config.deadtimePsc = PWM_DEADTIME_DIVID_1;
+    
+    // 初始化PWM0模块
+    PWM_DRV_SimplyInit(0, &pwm_config);
+    
+    // 配置PC2为PWM0_CH2功能
+    GPIO_DRV_SetMuxModeSel(PORTC, 2U, PORT_MUX_ALT2);  // PC2_PWM0_CH2
+    
+    printf("[INIT] PWM0 module initialized for bypass valve control\r\n");
+    
     // 确保调试串口(UART1)时钟就绪（InitDebug内部也会开启，这里冗余确保上电早期可用）
     CKGEN_DRV_Enable(CLK_UART1, true);
     CKGEN_DRV_SoftReset(SRST_UART1, true);
@@ -471,12 +508,7 @@ static void SystemHardwareInit(void)
     };
     GPIO_DRV_Init(1U, &cooler_gpio_config);
 
-    // 直接拉高PE8以确保硬件上线（若为低有效，请告知以反相）并回读打印
-    GPIO_DRV_SetPins(GPIOE, (1U << 8));
-    {
-        uint32_t pe_state = GPIO_DRV_ReadPins(GPIOE);
-        // 检查冷却器引脚状态（无打印）
-    }
+    // 默认保持风冷器关闭，由CAN指令控制开启
 
     // 初始化PB4换向阀控制为GPIO输出（确保方向正确）
     gpio_settings_config_t dir_valve_gpio_config = {
