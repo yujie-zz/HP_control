@@ -30,8 +30,6 @@
 // 如需强制将启动开关视为"开启"状态，置1
 #define FORCE_START_SWITCH_ON   1
 
-// PC命令超时保护（已禁用，安全保护不再使用）
-// #define PC_CMD_TIMEOUT_MS  1000  // 1秒超时
 
 /* ==========================================  Variables  =========================================== */
 bool g_systemEnabled = false;
@@ -77,12 +75,9 @@ static void SystemInit(void)
     ValveControl_Init();      // 阀门控制初始化
     FaultDiagnosis_Init();    // 故障诊断初始化
     
-    // CAN通信模块初始化 - 添加调试信息
-    printf("[INIT] Initializing CAN module...\r\n");
+    // CAN通信模块初始化
     bool can_init_result = CAN_Config_Init();
-    if (can_init_result) {
-        printf("[INIT] CAN module initialized successfully\r\n");
-    } else {
+    if (!can_init_result) {
         printf("[INIT] ERROR: CAN module initialization failed!\r\n");
     }
     
@@ -127,20 +122,7 @@ int main(void)
     
     SystemInit();  // 统一初始化
     
-    // 系统上电状态确认打印
-    printf("\r\n================= GCU System Startup =================\r\n");
-    printf("Project: High-Pressure Controller (Platform-Independent)\r\n");
-    printf("MCU: AC7840x, SYSCLK: %u MHz\r\n", (unsigned)(SYSTEM_CLOCK_FREQ_HZ/1000000U));
-    printf("CAN0: 500 Kbps, Pins RX=PE4 TX=PE5 STB=PE10\r\n");
-    printf("DEBUG: UART1@115200, TX=PC9 RX=PC8\r\n");
-    printf("IO: DirValve PB4, Bypass PWM0_CH2@PC2, Cooler PE8, StartSw PC17\r\n");
-    printf("System Status: INITIALIZED\r\n");
-    printf("Sensor Data: Sending to PC every 10ms\r\n");
-    printf("Safety Check: DISABLED\r\n");
-    printf("CAN Monitor: Status check every 1000ms\r\n");
-    printf("Sensor Monitor: Data display every 2000ms\r\n");
-    printf("Control Commands: Receiving from PC via CAN\r\n");
-    printf("========================================================\r\n");
+    // 启动横幅打印已移除（减少无关输出）
     
     /* 注册CAN接收回调 */
     CAN_Config_RegisterRxCallback(CAN_RxCallback);
@@ -167,62 +149,7 @@ int main(void)
     /* 启动任务调度器 */
     OptimizedTaskScheduler_Start();
     
-    // 任务调度器启动确认
-    printf("[SYSTEM] Task scheduler started successfully\r\n");
-    printf("[SYSTEM] Entering main loop...\r\n");
-    
-    // 启动后立即显示一次状态
-    printf("\r\n=== Initial System Status ===\r\n");
-    printf("System is running with 5 tasks:\r\n");
-    printf("- Task 1: Sensor data (10ms)\r\n");
-    printf("- Task 2: Safety check (50ms) - DISABLED\r\n");
-    printf("- Task 3: CAN monitor (1000ms)\r\n");
-    printf("- Task 4: Sensor monitor (2000ms)\r\n");
-    printf("- Task 5: Real-time CAN monitor (100ms)\r\n");
-    printf("- Task 6: CAN message process (1ms) - CRITICAL!\r\n");
-    printf("First status reports will appear in 5-6 seconds...\r\n");
-    printf("================================\r\n");
-    
-    // 添加调试信息：检查任务是否被正确添加
-    printf("[DEBUG] Checking task scheduler status...\r\n");
-    printf("[DEBUG] Scheduler running: %s\r\n", OptimizedTaskScheduler_IsRunning() ? "YES" : "NO");
-    
-    // 立即执行一次监控任务来测试
-    printf("[DEBUG] Executing immediate test...\r\n");
-    Task_1000ms_CANStatusMonitor();
-    Task_2000ms_SensorDataMonitor();
-    
-    // 移除启动自测PWM，避免比例阀上电即开启；如需生产测试请单独编译开关
-    
-    // CAN发送测试（已禁用，避免干扰正常传感器数据）
-    // printf("\r\n=== CAN TEST MESSAGE ===\r\n");
-    // printf("Sending test message...\r\n");
-    // uint8_t test_data[8] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
-    // printf("ID: 0x123 (Standard)\r\n");
-    // printf("Length: 8 bytes\r\n");
-    // printf("Data: [");
-    // for (int i = 0; i < 8; i++) {
-    //     printf("%02X", test_data[i]);
-    //     if (i < 7) printf(" ");
-    // }
-    // printf("]\r\n");
-    // printf("Hex: ");
-    // for (int i = 0; i < 8; i++) {
-    //     printf("%02X ", test_data[i]);
-    // }
-    // printf("\r\n");
-    // 
-    // bool test_result = CAN_Config_SendMessage(0x123, test_data, 8, false);
-    // printf("Test Send Result: %s\r\n", test_result ? "SUCCESS" : "FAILED");
-    // printf("========================\r\n");
-    
-    printf("\r\n=== Sensor Data Sending Info ===\r\n");
-    printf("Sensor data will be sent with ID: 0x%08X (Extended)\r\n", CAN_MSG_GCU_DEBUG1_ID);
-    printf("Update rate: 10ms (100 messages per second)\r\n");
-    printf("=====================================\r\n");
-    
-    /* 主循环 */
-    printf("[SYSTEM] Entering main loop...\r\n");
+    // 启动与调度器状态打印已移除（减少无关输出）
     
     // CAN错误检测和恢复计数器
     static uint32_t can_error_count = 0;
@@ -245,14 +172,10 @@ int main(void)
             // 如果错误过多，尝试重置CAN控制器
             if (error_count > 1000) {
                 can_error_count++;
-                printf("[CAN ERROR] High error count detected: %lu, attempting reset #%lu\r\n", 
-                       error_count, can_error_count);
-                
                 if (CAN_Config_ResetController()) {
-                    printf("[CAN RECOVERY] Controller reset successful\r\n");
                     can_error_count = 0;  // 重置计数器
                 } else {
-                    printf("[CAN RECOVERY] Controller reset failed\r\n");
+                    // 保留静默，避免打印风暴
                 }
             }
         }
@@ -289,16 +212,8 @@ void Task_10ms_SendSensorData(void)
         static uint32_t send_count = 0;
         static uint32_t send_fail_count = 0;
         
-        // 简化发送信息显示（每1000次显示一次）
-        if (++send_count % 1000 == 0) {
-            printf("[CAN TX] Count: #%lu, ID: 0x%08X (Ext)\r\n", send_count, CAN_MSG_GCU_DEBUG1_ID);
-            // 打印前100次的数据内容用于调试
-            if (send_count <= 100) {
-                printf("[CAN TX DATA] ID:0x%08X Data:[%02X %02X %02X %02X %02X %02X %02X %02X]\r\n",
-                       CAN_MSG_GCU_DEBUG1_ID, can_data[0], can_data[1], can_data[2], can_data[3],
-                       can_data[4], can_data[5], can_data[6], can_data[7]);
-            }
-        }
+        // 发送计数递增（不打印），仅在失败时打印一次
+        ++send_count;
         
         bool send_result = CAN_Config_SendMessage(CAN_MSG_GCU_DEBUG1_ID, can_data, 8, true);
         
@@ -342,11 +257,7 @@ void CAN_RxCallback(uint32_t msg_id, const uint8_t* data, uint8_t length)
     // 增加接收消息计数
     g_can_rx_message_count++;
     
-    // 减少回调打印频率（每100次打印一次）
-    static uint32_t callback_print_count = 0;
-    if (++callback_print_count % 100 == 0) {
-        printf("[CAN RX CALLBACK] Count: %lu, ID: 0x%08X, Length: %d\r\n", callback_print_count, msg_id, length);
-    }
+    // 移除周期性回调打印，避免串口噪声
     
     // 临时修复：处理接收到的控制消息ID
     if ((msg_id == CAN_MSG_GCU_CONTROL_ID || msg_id == 0x18080100) && length == 8) {
@@ -370,11 +281,14 @@ void CAN_RxCallback(uint32_t msg_id, const uint8_t* data, uint8_t length)
                 (last_ctrl_msg.ctrl_reserved != ctrl_msg.ctrl_reserved);
             
             if (command_changed) {
-                double bypass_duty = gcu_control_ctrl_bypass_valve_duty_decode(ctrl_msg.ctrl_bypass_valve_duty);
+                // 直接使用原始值作为百分比（0-100），忽略DBC缩放
+                double bypass_duty = (double)ctrl_msg.ctrl_bypass_valve_duty;
+                if (bypass_duty < 0.0) bypass_duty = 0.0; 
+                if (bypass_duty > 100.0) bypass_duty = 100.0;
                 printf("\r\n=== CAN CONTROL COMMAND RECEIVED ===\r\n");
                 printf("Reversal Valve Enable: %u\r\n", ctrl_msg.ctrl_reversal_valve_enable);
                 printf("Reversal Valve Freq: %u Hz\r\n", ctrl_msg.ctrl_reversal_valve_freq);
-                printf("Bypass Valve Duty: %.1f%% (raw: %u)\r\n", bypass_duty, ctrl_msg.ctrl_bypass_valve_duty);
+                printf("Bypass Valve Duty: %.1f%% (raw: %u -> used: %.1f%%)\r\n", bypass_duty, ctrl_msg.ctrl_bypass_valve_duty, bypass_duty);
                 printf("Cooler Enable: %u\r\n", ctrl_msg.ctrl_cooler_enable);
                 printf("System Enable: %u\r\n", ctrl_msg.ctrl_system_enable);
             }
@@ -400,8 +314,10 @@ void CAN_RxCallback(uint32_t msg_id, const uint8_t* data, uint8_t length)
                 bool reversal_enable = (ctrl_msg.ctrl_reversal_valve_enable == 1);
                 ValveControl_SetDirectionalValve(reversal_enable);
                 
-                // 2. 旁通阀占空比控制（使用decode转换原始值→物理值）
-                double bypass_duty = gcu_control_ctrl_bypass_valve_duty_decode(ctrl_msg.ctrl_bypass_valve_duty);
+                // 2. 旁通阀占空比控制：直接使用原始值作为百分比（0-100）
+                double bypass_duty = (double)ctrl_msg.ctrl_bypass_valve_duty;
+                if (bypass_duty < 0.0) bypass_duty = 0.0; 
+                if (bypass_duty > 100.0) bypass_duty = 100.0;
                 ValveControl_SetBypassValve((float)bypass_duty);
                 
                 // 3. 换向阀频率控制
@@ -578,6 +494,7 @@ void Task_1000ms_CANStatusMonitor(void)
     static uint32_t last_error_count = 0;
     static uint32_t monitor_count = 0;
     
+    
     uint32_t current_rx_count, current_tx_count, current_error_count;
     
     // 获取CAN统计信息
@@ -644,8 +561,6 @@ void Task_1000ms_CANStatusMonitor(void)
  * ======================================================================== */
 void Task_2000ms_SensorDataMonitor(void)
 {
-    static uint32_t monitor_count = 0;
-    
     // 更新传感器数据
     Sensor_UpdateMonitor();
     
@@ -660,14 +575,8 @@ void Task_2000ms_SensorDataMonitor(void)
     valve_state_t cooler_state = ValveControl_GetCoolerState();
     float bypass_duty = ValveControl_GetBypassValveDuty();
     
-    // 每10次监控（20秒）显示简单状态
-    if (++monitor_count % 10 == 0) {
-        printf("[SENSOR] Oil:%.1f°C/%.1fMPa LNG:%.1f°C/%.1fMPa\r\n", 
-               oil_temp, oil_pressure, lng_temp, lng_pressure);
-    }
-    
-    // 每20次监控（40秒）打印一次详细数据
-    if (monitor_count % 20 == 0) {
+    // 每次任务（2秒）打印一次详细数据
+    {
         printf("\r\n=== Sensor Data Monitor ===\r\n");
         printf("Oil Temperature: %.2f°C\r\n", oil_temp);
         printf("LNG Temperature: %.2f°C\r\n", lng_temp);

@@ -119,11 +119,7 @@ static void CAN_EventCallback(uint8_t instance, uint32_t event, uint32_t koer)
         {
             s_canAppConfig.rxCount++;
             
-            // 简化接收消息显示（每10次显示一次）
-            if (s_canAppConfig.rxCount % 10 == 0) {
-                printf("[CAN RX] Count: %lu, ID: 0x%08X (%s)\r\n", 
-                       s_canAppConfig.rxCount, msg.ID, (msg.IDE) ? "Ext" : "Std");
-            }
+            // 已移除周期性接收日志打印，避免串口干扰
             
             /* 已删除：旧的CAN透传处理代码 - 平台无关化后使用新的回调机制 */
             
@@ -146,10 +142,7 @@ static void CAN_EventCallback(uint8_t instance, uint32_t event, uint32_t koer)
     {
         s_canAppConfig.txCount++;
         
-        // 简化发送完成信息（每50次显示一次）
-        if (s_canAppConfig.txCount % 50 == 0) {
-            printf("[CAN TX COMPLETE] Count: %lu\r\n", s_canAppConfig.txCount);
-        }
+        // 已移除周期性发送完成日志打印，避免串口干扰
         
         /* Call transmit handler if installed */
         if (s_canAppConfig.txHandler != NULL)
@@ -665,23 +658,12 @@ uint8_t CAN_Config_GetCurrentBitrateIndex(void)
  */
 bool CAN_Config_SetFilter(uint8_t filterIndex, uint32_t code, uint32_t mask, uint8_t idType)
 {
-    if (!s_canAppConfig.initialized || filterIndex >= CAN_FILTER_COUNT)
-    {
-        return false;
-    }
-    
-    /* 更新过滤器配置 */
-            /* Note: s_canFilterList is const, cannot modify at runtime */
-        /* This function is for demonstration only */
-        (void)filterIndex;
-        (void)code;
-        (void)mask;
-        (void)idType;
-    
-    /* 重新配置过滤器 */
-    CAN_ConfigFilters();
-    
-    return true;
+    (void)filterIndex;
+    (void)code;
+    (void)mask;
+    (void)idType;
+    /* 当前项目无需动态过滤器，保留占位以兼容接口 */
+    return false;
 }
 
 /*!
@@ -690,36 +672,7 @@ bool CAN_Config_SetFilter(uint8_t filterIndex, uint32_t code, uint32_t mask, uin
  * @param[in] type: 发送缓冲区类型
  * @retval 0: 发送成功, 1: 发送失败
  */
-int32_t CAN_Config_SendTest(uint8_t instance, uint8_t type)
-{
-    int32_t ret = 1;
-    static can_msg_info_t s_sendMsg = {0};
-    static uint8_t sendData[8] = {0};
-    
-    if (!CAN_DRV_IsTransmitBusy(instance, (can_transmit_buff_t)type))
-    {
-        /* 准备测试消息 */
-        s_sendMsg.ID = 0x123;                        /* 测试CAN ID */
-        s_sendMsg.IDE = 0;                           /* 标准帧 */
-        s_sendMsg.RTR = 0;                           /* 数据帧 */
-        s_sendMsg.DLC = 8;                           /* 数据长度 */
-        s_sendMsg.DATA = sendData;                   /* 数据 */
-        
-        /* 填充测试数据 */
-        for (int i = 0; i < 8; i++)
-        {
-            sendData[i] = i + 1;
-        }
-        
-        if (STATUS_SUCCESS == CAN_DRV_Send(instance, &s_sendMsg, (can_transmit_buff_t)type))
-        {
-            s_canCurNode[instance].sendCount++;      /* 节点信息计数 */
-            ret = 0;
-        }
-    }
-    
-    return ret;
-}
+/* 删除测试发送函数，避免误用与干扰运行 */
 
 /*!
  * @brief 获取CAN节点统计信息

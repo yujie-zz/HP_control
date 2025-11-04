@@ -106,7 +106,8 @@ void ValveControl_Init(void)
     
     // 重要：初始化时不启用通道输出，防止上电即开启
     // 只有在收到CAN命令设置占空比后才启用输出
-    PWM_DRV_SetChannelOutputMask(0, PWM_CH_2, false);
+    // 掩蔽输出：true = 掩蔽(关闭输出)，false = 取消掩蔽(开启输出)
+    PWM_DRV_SetChannelOutputMask(0, PWM_CH_2, true);
     
     // 验证设置：读取并打印实际设置的计数值
     uint32_t actual_count = PWM_DRV_GetChannelCountValue(0, PWM_CH_2);
@@ -171,11 +172,11 @@ void ValveControl_SetBypassValve(float duty)
     
     // 根据占空比控制通道输出：占空比>0时启用输出，占空比=0时禁用输出
     if (duty > 0.0f) {
-        // 占空比>0：启用PWM输出
-        PWM_DRV_SetChannelOutputMask(0, PWM_CH_2, true);
-    } else {
-        // 占空比=0：禁用PWM输出（确保完全关闭）
+        // 占空比>0：启用PWM输出（取消掩蔽）
         PWM_DRV_SetChannelOutputMask(0, PWM_CH_2, false);
+    } else {
+        // 占空比=0：禁用PWM输出（掩蔽）
+        PWM_DRV_SetChannelOutputMask(0, PWM_CH_2, true);
     }
     
     // 验证设置是否生效（调试用）
