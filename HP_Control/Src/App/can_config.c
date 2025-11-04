@@ -159,24 +159,25 @@ static void CAN_EventCallback(uint8_t instance, uint32_t event, uint32_t koer)
         }
     }
     
-    /* Handle error events - print only once per error type */
+    /* Handle error events - print only once when entering error state */
     static bool errorActive = false;
+    static bool error_has_printed = false;
     
     if (event & (CAN_EVENT_ERROR | CAN_EVENT_BUS_ERROR | CAN_EVENT_ARBIT_LOST | CAN_EVENT_ERROR_PASSIVE))
     {
         s_canAppConfig.errorCount++;
         
-        /* 简化错误信息显示（每1000次显示一次） */
-        static uint32_t error_report_count = 0;
-        if (++error_report_count % 1000 == 0) {
+        /* 只在首次进入错误状态时打印一次，之后不再打印 */
+        if (!errorActive && !error_has_printed)
+        {
             printf("[CAN ERROR] Count: %lu, Event: 0x%08X\r\n", 
                    s_canAppConfig.errorCount, event);
+            error_has_printed = true;
         }
         
-        /* Only mark error as active if this error type hasn't been marked before */
+        /* Mark error as active */
         if (!errorActive)
         {
-            /* Mark error as active */
             errorActive = true;
         }
     }
@@ -186,6 +187,7 @@ static void CAN_EventCallback(uint8_t instance, uint32_t event, uint32_t koer)
         if (errorActive)
         {
             errorActive = false;
+            error_has_printed = false;  /* 恢复后重置打印标志，允许下次错误时再次打印 */
         }
     }
 }
@@ -352,20 +354,37 @@ bool CAN_Config_SendMessage(uint32_t id, const uint8_t *data, uint8_t length, bo
     // 添加详细调试信息
     static uint32_t send_count = 0;
     static uint32_t send_error_count = 0;
+    static uint32_t last_error_status = 0;
+    static bool status_error_printed = false;
     
     if (status != STATUS_SUCCESS) {
         send_error_count++;
-        // 只在错误过多时显示
-        if (send_error_count % 50 == 0) {
+        // 只在状态码改变或首次错误时打印一次
+        if (status != last_error_status || !status_error_printed) {
             printf("[CAN ERROR] Status: 0x%08X, Errors: %lu\r\n", status, send_error_count);
+            last_error_status = status;
+            status_error_printed = true;
         }
+    } else {
+        // 成功时重置打印标志
+        status_error_printed = false;
     }
     
-    // 每100次发送显示一次统计
+    // 统计信息只在首次打印或成功率有显著变化时打印一次（避免频繁打印）
+    static bool stats_printed = false;
+    static float last_success_rate = -1.0f;
+    
     if (++send_count % 100 == 0) {
-        printf("[CAN STATS] Total: %lu, Errors: %lu, Success: %.1f%%\r\n", 
-               send_count, send_error_count,
-               send_count > 0 ? (100.0f * (send_count - send_error_count) / send_count) : 0.0f);
+        float current_success_rate = send_count > 0 ? (100.0f * (send_count - send_error_count) / send_count) : 0.0f;
+        // 只在首次打印或成功率变化超过10%时打印一次（避免因数值微小变化导致的频繁打印）
+        if (!stats_printed || 
+            (current_success_rate - last_success_rate > 10.0f) || 
+            (last_success_rate - current_success_rate > 10.0f)) {
+            printf("[CAN STATS] Total: %lu, Errors: %lu, Success: %.1f%%\r\n", 
+                   send_count, send_error_count, current_success_rate);
+            last_success_rate = current_success_rate;
+            stats_printed = true;
+        }
     }
     
     return (STATUS_SUCCESS == status);

@@ -35,7 +35,7 @@ extern "C" {
 
 /**
  * @brief gcu_debug1 message signals (GCU -> TSMaster)
- * @note Message ID: 0x98000E6C, DLC: 8, Cycle: 10ms
+* @note Message ID: 0x98000E6C, DLC: 8, Cycle: 10ms
  * All signal values are as on the CAN bus (raw values).
  */
 typedef struct {
@@ -106,7 +106,7 @@ typedef struct {
 
 /**
  * @brief gcu_control message signals (TSMaster -> GCU)
- * @note Message ID: 0x98000000, DLC: 8, Cycle: 100ms
+* @note Message ID: 0x98000000, DLC: 8, Cycle: 100ms
  * All signal values are as on the CAN bus (raw values).
  */
 typedef struct {
