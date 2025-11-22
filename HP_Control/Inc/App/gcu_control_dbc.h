@@ -1,11 +1,12 @@
 /**
- * @file gcu_control_dbc_new.h
- * @brief Auto-generated from gcu_control(4).dbc
+ * @file gcu_control_dbc.h
+ * @brief Auto-generated from gcu_hp_control_04.dbc
  * @note This file was automatically generated. Do not modify manually.
+ * @date 2025-01-27
  */
 
-#ifndef GCU_CONTROL_DBC_NEW_H
-#define GCU_CONTROL_DBC_NEW_H
+#ifndef GCU_CONTROL_DBC_H
+#define GCU_CONTROL_DBC_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -22,277 +23,421 @@ extern "C" {
 /* ========================================================================
  * CAN Message IDs
  * ======================================================================== */
-#define CAN_MSG_GCU_DEBUG1_ID       0x980FF16CU  /* 2551181676 */
-#define CAN_MSG_GCU_CONTROL_ID      0x98080100U  /* 2550661376 */
+#define CAN_MSG_DEVICE_STATUS_ID       0x980FF16CU  /* 2551181676 - GCU -> TSMaster */
+#define CAN_MSG_TSMASTER_CONTROL_ID    0x98080100U  /* 2550661376 - TSMaster -> GCU */
+#define CAN_MSG_TSMASTER_CONTROL2_ID   0x98080108U  /* 2550661384 - TSMaster -> GCU */
 
 /* Message cycle times (ms) */
-#define CAN_MSG_GCU_DEBUG1_CYCLE    10U
-#define CAN_MSG_GCU_CONTROL_CYCLE   100U
+#define CAN_MSG_DEVICE_STATUS_CYCLE    10U
+#define CAN_MSG_TSMASTER_CONTROL_CYCLE 100U
+#define CAN_MSG_TSMASTER_CONTROL2_CYCLE 100U
 
 /* ========================================================================
  * Signal Structures
  * ======================================================================== */
 
 /**
- * @brief gcu_debug1 message signals (GCU -> TSMaster)
-* @note Message ID: 0x98000E6C, DLC: 8, Cycle: 10ms
+ * @brief device_status message signals (GCU -> TSMaster)
+ * @note Message ID: 0x980FF16C, DLC: 8, Cycle: 10ms
  * All signal values are as on the CAN bus (raw values).
  */
 typedef struct {
     /**
-     * 旁通阀开度比例
-     * Range: 0..50 (0..50 %)
-     * Scale: 1
+     * 旁通阀比例
+     * Range: 0..250 (0..50 %)
+     * Scale: 0.2
      * Offset: 0
      */
     uint8_t bypass_ratio;
     
     /**
-     * 换向阀开关状态
-     * Range: 0..1 (0..1 -)
-     * Scale: 1
-     * Offset: 0
-     */
-    uint8_t reversal_valve_st;
-    
-    /**
-     * 气压缓冲罐压力
-     * Range: 0..511 (0..40 MPa)
-     * Scale: 0.1
-     * Offset: 0
-     */
-    uint16_t LNG_pressure;
-    
-    /**
-     * 换向阀频率
-     * Range: 0..127 (0..100 Hz)
-     * Scale: 1
-     * Offset: 0
-     */
-    uint8_t reversal_valve_hz;
-    
-    /**
-     * 气压缓冲罐温度
-     * Range: 0..4095 (-80..90 °C)
-     * Scale: 0.1
-     * Offset: -80
-     */
-    uint16_t LNG_temperature;
-    
-    /**
-     * 油压力
-     * Range: 0..255 (0..20 MPa)
-     * Scale: 0.1
+     * 油压
+     * Range: 0..256 (0..40 MPa)
+     * Scale: 0.15625
      * Offset: 0
      */
     uint8_t oil_pressure;
     
     /**
      * 油温
-     * Range: 0..4095 (-80..90 °C)
-     * Scale: 0.1
-     * Offset: -80
+     * Range: 0..255 (-40..90 °C)
+     * Scale: 0.5098
+     * Offset: -40
      */
-    uint16_t oil_temperature;
+    uint8_t oil_temperature;
     
     /**
-     * 预留
-     * Range: 0..255 (0..255 -)
+     * LNG温度
+     * Range: 0..255 (-40..90 °C)
+     * Scale: 0.5098
+     * Offset: -40
+     */
+    uint8_t LNG_temperature;
+    
+    /**
+     * LNG压力
+     * Range: 0..256 (0..40 MPa)
+     * Scale: 0.15625
+     * Offset: 0
+     */
+    uint8_t LNG_pressure;
+    
+    /**
+     * 换向频率
+     * Range: 0..1023 (0..1000 min/次)
      * Scale: 1
      * Offset: 0
      */
-    uint8_t reserve_debug1;
-} gcu_debug1_t;
+    uint16_t rev_freq;
+    
+    /**
+     * 换向阀使能状态
+     * Range: 0..1 (0=OFF, 1=ON)
+     * Scale: 1
+     * Offset: 0
+     */
+    uint8_t rev_enable;
+    
+    /**
+     * 风冷器使能状态
+     * Range: 0..1 (0=OFF, 1=ON)
+     * Scale: 1
+     * Offset: 0
+     */
+    uint8_t cooler_enable;
+    
+    // 注意：bit 52-63 (剩余12位) 未使用，预留未来扩展
+} device_status_t;
 
 /**
- * @brief gcu_control message signals (TSMaster -> GCU)
-* @note Message ID: 0x98000000, DLC: 8, Cycle: 100ms
+ * @brief tsmaster_control message signals (TSMaster -> GCU)
+ * @note Message ID: 0x98080100, DLC: 8, Cycle: 100ms
  * All signal values are as on the CAN bus (raw values).
  */
 typedef struct {
     /**
-     * 换向阀使能控制
-     * Range: 0..1 (0=OFF, 1=ON)
-     * Scale: 1
-     * Offset: 0
-     */
-    uint8_t ctrl_reversal_valve_enable;
-    
-    /**
-     * 旁通阀占空比控制
-     * Range: 0..1000 (0..100 %)
+     * 设置旁通阀起始下降时间
+     * Range: 0..1000 (0..100 s)
      * Scale: 0.1
      * Offset: 0
      */
-    uint16_t ctrl_bypass_valve_duty;
+    uint16_t set_bypass_initial_decline_time;
     
     /**
-     * 换向阀频率控制
-     * Range: 0..100 (0..100 Hz)
-     * Scale: 1
+     * 换向阀启动油压限制最大值设置
+     * Range: 0..100 (0..10 MPa)
+     * Scale: 0.1
      * Offset: 0
      */
-    uint8_t ctrl_reversal_valve_freq;
+    uint8_t set_rev_start_oilP_max;
     
     /**
-     * 冷却器使能控制
-     * Range: 0..1 (0=OFF, 1=ON)
-     * Scale: 1
+     * 换向阀启动油压限制最小值设置
+     * Range: 0..100 (0..10 MPa)
+     * Scale: 0.1
      * Offset: 0
      */
-    uint8_t ctrl_cooler_enable;
+    uint8_t set_rev_start_oilP_min;
     
     /**
-     * 系统使能控制
+     * 第一阶段换向阀固定频率设置开启时常
+     * Range: 0..1000 (0..100 s)
+     * Scale: 0.1
+     * Offset: 0
+     */
+    uint16_t set_first_fix_freq_time_on;
+    
+    /**
+     * 第一阶段换向阀固定频率设置关闭时常
+     * Range: 0..1000 (0..100 s)
+     * Scale: 0.1
+     * Offset: 0
+     */
+    uint16_t set_first_fix_freq_time_off;
+    
+    /**
+     * 第二阶段换向的最大油压值设置
+     * Range: 0..400 (0..40 MPa)
+     * Scale: 0.1
+     * Offset: 0
+     */
+    uint16_t set_second_rev_oilP_max;
+    
+    /**
+     * 第二阶段换向的最小油压值设置
+     * Range: 0..400 (0..40 MPa)
+     * Scale: 0.1
+     * Offset: 0
+     */
+    uint16_t set_second_rev_oilP_min;
+} tsmaster_control_t;
+
+/**
+ * @brief tsmaster_control2 message signals (TSMaster -> GCU)
+ * @note Message ID: 0x98080108, DLC: 8, Cycle: 100ms
+ * All signal values are as on the CAN bus (raw values).
+ */
+typedef struct {
+    /**
+     * 第二阶段强制换向开启时间
+     * Range: 0..1000 (0..100 s)
+     * Scale: 0.1
+     * Offset: 0
+     */
+    uint16_t set_rev_compel_time_on;
+    
+    /**
+     * 第二阶段强制换向关闭时间
+     * Range: 0..1000 (0..100 s)
+     * Scale: 0.1
+     * Offset: 0
+     */
+    uint16_t set_rev_compel_time_off;
+    
+    /**
+     * 系统开关
      * Range: 0..1 (0=Disable, 1=Enable)
      * Scale: 1
      * Offset: 0
      */
-    uint8_t ctrl_system_enable;
+    uint8_t system_enable;
     
     /**
-     * 预留字段
-     * Range: 0..1073741823 (0..1073741823 -)
+     * 设置风冷器开启温度
+     * Range: 0..100 (0..100 °C)
      * Scale: 1
      * Offset: 0
      */
-    uint32_t ctrl_reserved;
-} gcu_control_t;
+    uint8_t set_cooler_temperature_on;
+    
+    /**
+     * 设置风冷器关闭温度
+     * Range: 0..100 (0..100 °C)
+     * Scale: 1
+     * Offset: 0
+     */
+    uint8_t set_cooler_temperature_off;
+    
+    /**
+     * 设置旁通阀比例
+     * Range: 0..500 (0..50 %)
+     * Scale: 0.1
+     * Offset: 0
+     */
+    uint16_t set_bypass_ratio;
+    
+    /**
+     * 第二阶段换向开启超时
+     * Range: 0..1000 (0..100 s)
+     * Scale: 0.1
+     * Offset: 0
+     */
+    uint16_t set_second_on_overtime;
+    
+    /**
+     * 第二阶段换向关闭超时
+     * Range: 0..1000 (0..100 s)
+     * Scale: 0.1
+     * Offset: 0
+     */
+    uint16_t set_second_off_overtime;
+    
+    // 注意：bit 63 (剩余1位) 未使用，预留未来扩展
+} tsmaster_control2_t;
 
 /* ========================================================================
  * Signal Value Definitions
  * ======================================================================== */
 
-/* ctrl_reversal_valve_enable */
-#define CTRL_REVERSAL_VALVE_OFF     0U
-#define CTRL_REVERSAL_VALVE_ON      1U
+/* rev_enable */
+#define REV_ENABLE_OFF     0U
+#define REV_ENABLE_ON      1U
 
-/* ctrl_cooler_enable */
-#define CTRL_COOLER_OFF             0U
-#define CTRL_COOLER_ON              1U
+/* cooler_enable */
+#define COOLER_ENABLE_OFF  0U
+#define COOLER_ENABLE_ON   1U
 
-/* ctrl_system_enable */
-#define CTRL_SYSTEM_DISABLE         0U
-#define CTRL_SYSTEM_ENABLE          1U
+/* system_enable */
+#define SYSTEM_DISABLE     0U
+#define SYSTEM_ENABLE      1U
 
 /* ========================================================================
  * Pack/Unpack Functions
  * ======================================================================== */
 
 /**
- * @brief Pack gcu_debug1 message
+ * @brief Pack device_status message
  * @param[out] dst_p Buffer to pack the message into
  * @param[in] src_p Data to pack
  * @param[in] size Size of dst_p
  * @return Size of packed data, or negative error code
  */
-int gcu_debug1_pack(
+int device_status_pack(
     uint8_t *dst_p,
-    const gcu_debug1_t *src_p,
+    const device_status_t *src_p,
     size_t size);
 
 /**
- * @brief Unpack gcu_debug1 message
+ * @brief Unpack device_status message
  * @param[out] dst_p Object to unpack the message into
  * @param[in] src_p Message to unpack
  * @param[in] size Size of src_p
  * @return zero(0) or negative error code
  */
-int gcu_debug1_unpack(
-    gcu_debug1_t *dst_p,
+int device_status_unpack(
+    device_status_t *dst_p,
     const uint8_t *src_p,
     size_t size);
 
 /**
- * @brief Pack gcu_control message
+ * @brief Pack tsmaster_control message
  * @param[out] dst_p Buffer to pack the message into
  * @param[in] src_p Data to pack
  * @param[in] size Size of dst_p
  * @return Size of packed data, or negative error code
  */
-int gcu_control_pack(
+int tsmaster_control_pack(
     uint8_t *dst_p,
-    const gcu_control_t *src_p,
+    const tsmaster_control_t *src_p,
     size_t size);
 
 /**
- * @brief Unpack gcu_control message
+ * @brief Unpack tsmaster_control message
  * @param[out] dst_p Object to unpack the message into
  * @param[in] src_p Message to unpack
  * @param[in] size Size of src_p
  * @return zero(0) or negative error code
  */
-int gcu_control_unpack(
-    gcu_control_t *dst_p,
+int tsmaster_control_unpack(
+    tsmaster_control_t *dst_p,
+    const uint8_t *src_p,
+    size_t size);
+
+/**
+ * @brief Pack tsmaster_control2 message
+ * @param[out] dst_p Buffer to pack the message into
+ * @param[in] src_p Data to pack
+ * @param[in] size Size of dst_p
+ * @return Size of packed data, or negative error code
+ */
+int tsmaster_control2_pack(
+    uint8_t *dst_p,
+    const tsmaster_control2_t *src_p,
+    size_t size);
+
+/**
+ * @brief Unpack tsmaster_control2 message
+ * @param[out] dst_p Object to unpack the message into
+ * @param[in] src_p Message to unpack
+ * @param[in] size Size of src_p
+ * @return zero(0) or negative error code
+ */
+int tsmaster_control2_unpack(
+    tsmaster_control2_t *dst_p,
     const uint8_t *src_p,
     size_t size);
 
 /* ========================================================================
- * gcu_debug1 Encode/Decode Functions
+ * Encode/Decode Functions
  * ======================================================================== */
 
-uint8_t gcu_debug1_bypass_ratio_encode(double value);
-double gcu_debug1_bypass_ratio_decode(uint8_t value);
-bool gcu_debug1_bypass_ratio_is_in_range(uint8_t value);
+/* device_status encode/decode functions */
+uint8_t device_status_bypass_ratio_encode(double value);
+double device_status_bypass_ratio_decode(uint8_t value);
+bool device_status_bypass_ratio_is_in_range(uint8_t value);
 
-uint8_t gcu_debug1_reversal_valve_st_encode(double value);
-double gcu_debug1_reversal_valve_st_decode(uint8_t value);
-bool gcu_debug1_reversal_valve_st_is_in_range(uint8_t value);
+uint8_t device_status_oil_pressure_encode(double value);
+double device_status_oil_pressure_decode(uint8_t value);
+bool device_status_oil_pressure_is_in_range(uint8_t value);
 
-uint16_t gcu_debug1_LNG_pressure_encode(double value);
-double gcu_debug1_LNG_pressure_decode(uint16_t value);
-bool gcu_debug1_LNG_pressure_is_in_range(uint16_t value);
+uint8_t device_status_oil_temperature_encode(double value);
+double device_status_oil_temperature_decode(uint8_t value);
+bool device_status_oil_temperature_is_in_range(uint8_t value);
 
-uint8_t gcu_debug1_reversal_valve_hz_encode(double value);
-double gcu_debug1_reversal_valve_hz_decode(uint8_t value);
-bool gcu_debug1_reversal_valve_hz_is_in_range(uint8_t value);
+uint8_t device_status_LNG_temperature_encode(double value);
+double device_status_LNG_temperature_decode(uint8_t value);
+bool device_status_LNG_temperature_is_in_range(uint8_t value);
 
-uint16_t gcu_debug1_LNG_temperature_encode(double value);
-double gcu_debug1_LNG_temperature_decode(uint16_t value);
-bool gcu_debug1_LNG_temperature_is_in_range(uint16_t value);
+uint8_t device_status_LNG_pressure_encode(double value);
+double device_status_LNG_pressure_decode(uint8_t value);
+bool device_status_LNG_pressure_is_in_range(uint8_t value);
 
-uint8_t gcu_debug1_oil_pressure_encode(double value);
-double gcu_debug1_oil_pressure_decode(uint8_t value);
-bool gcu_debug1_oil_pressure_is_in_range(uint8_t value);
+uint16_t device_status_rev_freq_encode(double value);
+double device_status_rev_freq_decode(uint16_t value);
+bool device_status_rev_freq_is_in_range(uint16_t value);
 
-uint16_t gcu_debug1_oil_temperature_encode(double value);
-double gcu_debug1_oil_temperature_decode(uint16_t value);
-bool gcu_debug1_oil_temperature_is_in_range(uint16_t value);
+uint8_t device_status_rev_enable_encode(double value);
+double device_status_rev_enable_decode(uint8_t value);
+bool device_status_rev_enable_is_in_range(uint8_t value);
 
-uint8_t gcu_debug1_reserve_debug1_encode(double value);
-double gcu_debug1_reserve_debug1_decode(uint8_t value);
-bool gcu_debug1_reserve_debug1_is_in_range(uint8_t value);
+uint8_t device_status_cooler_enable_encode(double value);
+double device_status_cooler_enable_decode(uint8_t value);
+bool device_status_cooler_enable_is_in_range(uint8_t value);
 
-/* ========================================================================
- * gcu_control Encode/Decode Functions
- * ======================================================================== */
+/* tsmaster_control encode/decode functions */
+uint16_t tsmaster_control_set_bypass_initial_decline_time_encode(double value);
+double tsmaster_control_set_bypass_initial_decline_time_decode(uint16_t value);
+bool tsmaster_control_set_bypass_initial_decline_time_is_in_range(uint16_t value);
 
-uint8_t gcu_control_ctrl_reversal_valve_enable_encode(double value);
-double gcu_control_ctrl_reversal_valve_enable_decode(uint8_t value);
-bool gcu_control_ctrl_reversal_valve_enable_is_in_range(uint8_t value);
+uint8_t tsmaster_control_set_rev_start_oilP_max_encode(double value);
+double tsmaster_control_set_rev_start_oilP_max_decode(uint8_t value);
+bool tsmaster_control_set_rev_start_oilP_max_is_in_range(uint8_t value);
 
-uint16_t gcu_control_ctrl_bypass_valve_duty_encode(double value);
-double gcu_control_ctrl_bypass_valve_duty_decode(uint16_t value);
-bool gcu_control_ctrl_bypass_valve_duty_is_in_range(uint16_t value);
+uint8_t tsmaster_control_set_rev_start_oilP_min_encode(double value);
+double tsmaster_control_set_rev_start_oilP_min_decode(uint8_t value);
+bool tsmaster_control_set_rev_start_oilP_min_is_in_range(uint8_t value);
 
-uint8_t gcu_control_ctrl_reversal_valve_freq_encode(double value);
-double gcu_control_ctrl_reversal_valve_freq_decode(uint8_t value);
-bool gcu_control_ctrl_reversal_valve_freq_is_in_range(uint8_t value);
+uint16_t tsmaster_control_set_first_fix_freq_time_on_encode(double value);
+double tsmaster_control_set_first_fix_freq_time_on_decode(uint16_t value);
+bool tsmaster_control_set_first_fix_freq_time_on_is_in_range(uint16_t value);
 
-uint8_t gcu_control_ctrl_cooler_enable_encode(double value);
-double gcu_control_ctrl_cooler_enable_decode(uint8_t value);
-bool gcu_control_ctrl_cooler_enable_is_in_range(uint8_t value);
+uint16_t tsmaster_control_set_first_fix_freq_time_off_encode(double value);
+double tsmaster_control_set_first_fix_freq_time_off_decode(uint16_t value);
+bool tsmaster_control_set_first_fix_freq_time_off_is_in_range(uint16_t value);
 
-uint8_t gcu_control_ctrl_system_enable_encode(double value);
-double gcu_control_ctrl_system_enable_decode(uint8_t value);
-bool gcu_control_ctrl_system_enable_is_in_range(uint8_t value);
+uint16_t tsmaster_control_set_second_rev_oilP_max_encode(double value);
+double tsmaster_control_set_second_rev_oilP_max_decode(uint16_t value);
+bool tsmaster_control_set_second_rev_oilP_max_is_in_range(uint16_t value);
 
-uint32_t gcu_control_ctrl_reserved_encode(double value);
-double gcu_control_ctrl_reserved_decode(uint32_t value);
-bool gcu_control_ctrl_reserved_is_in_range(uint32_t value);
+uint16_t tsmaster_control_set_second_rev_oilP_min_encode(double value);
+double tsmaster_control_set_second_rev_oilP_min_decode(uint16_t value);
+bool tsmaster_control_set_second_rev_oilP_min_is_in_range(uint16_t value);
+
+/* tsmaster_control2 encode/decode functions */
+uint16_t tsmaster_control2_set_rev_compel_time_on_encode(double value);
+double tsmaster_control2_set_rev_compel_time_on_decode(uint16_t value);
+bool tsmaster_control2_set_rev_compel_time_on_is_in_range(uint16_t value);
+
+uint16_t tsmaster_control2_set_rev_compel_time_off_encode(double value);
+double tsmaster_control2_set_rev_compel_time_off_decode(uint16_t value);
+bool tsmaster_control2_set_rev_compel_time_off_is_in_range(uint16_t value);
+
+uint8_t tsmaster_control2_system_enable_encode(double value);
+double tsmaster_control2_system_enable_decode(uint8_t value);
+bool tsmaster_control2_system_enable_is_in_range(uint8_t value);
+
+uint8_t tsmaster_control2_set_cooler_temperature_on_encode(double value);
+double tsmaster_control2_set_cooler_temperature_on_decode(uint8_t value);
+bool tsmaster_control2_set_cooler_temperature_on_is_in_range(uint8_t value);
+
+uint8_t tsmaster_control2_set_cooler_temperature_off_encode(double value);
+double tsmaster_control2_set_cooler_temperature_off_decode(uint8_t value);
+bool tsmaster_control2_set_cooler_temperature_off_is_in_range(uint8_t value);
+
+uint16_t tsmaster_control2_set_bypass_ratio_encode(double value);
+double tsmaster_control2_set_bypass_ratio_decode(uint16_t value);
+bool tsmaster_control2_set_bypass_ratio_is_in_range(uint16_t value);
+
+uint16_t tsmaster_control2_set_second_on_overtime_encode(double value);
+double tsmaster_control2_set_second_on_overtime_decode(uint16_t value);
+bool tsmaster_control2_set_second_on_overtime_is_in_range(uint16_t value);
+
+uint16_t tsmaster_control2_set_second_off_overtime_encode(double value);
+double tsmaster_control2_set_second_off_overtime_decode(uint16_t value);
+bool tsmaster_control2_set_second_off_overtime_is_in_range(uint16_t value);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* GCU_CONTROL_DBC_NEW_H */
+#endif /* GCU_CONTROL_DBC_H */

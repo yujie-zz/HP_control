@@ -5,7 +5,6 @@
 
 #include "fault_diagnosis.h"
 #include "sensor.h"
-// 已删除: #include "hydraulic_control.h" - 模块已删除
 #include "osif.h"
 #include <string.h>
 
@@ -160,7 +159,6 @@ fault_diagnosis_t FaultDiagnosis_DiagnoseSystem(void) {
         return g_fault_diagnosis;
     }
     
-    // 已删除：换向频率检测 - 控制逻辑已移至PC端
     // 平台无关化后，换向阀频率由PC端控制和监控
     
     g_last_diagnosis_time = current_time;

@@ -237,11 +237,7 @@ bool CAN_Config_Init(void)
         s_canAppConfig.rxCount = 0;
         s_canAppConfig.txCount = 0;
         s_canAppConfig.errorCount = 0;
-        s_canAppConfig.cycleCounter = 0;
         s_canAppConfig.currentBitrateIndex = 2U; /* 默认使用500Kbps (index 2) */
-        s_canAppConfig.highFreqCounter = 0;      /* 初始化高频计数器 */
-        
-        s_canAppConfig.lowFreqCounter = 0;       /* 初始化低频计数器 */
         
         return true;
     }
