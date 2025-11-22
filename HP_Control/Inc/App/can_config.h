@@ -16,13 +16,6 @@
  *
  * @brief CAN配置头文件 - 高压控制器专用
  *
- * @version v8.0 (平台无关化版本)
- * @date 2025-01-27
- *
- * @note 本文件已更新为使用 gcu_hp_control_04.dbc 生成的消息定义
- * @note 所有CAN消息ID、结构和编解码函数定义在 gcu_control_dbc.h 中
- * @note 发送和接收逻辑在 main.c 中实现（Task_10ms_SendSensorData 和 CAN_RxCallback）
- *
  */
 
 #ifndef __CAN_CONFIG_H
@@ -60,15 +53,28 @@ typedef struct can_msg_info_s can_msg_info_t;
 #define CAN_BITRATE_500K_SJW        11U             /* 同步跳转宽度 */
 #define CAN_BITRATE_500K_PRESC      4U              /* 预分频器 */
 
-/* ==================== CAN消息ID定义（来自DBC）==================== */
-/* 注意：消息ID已从gcu_control_dbc.h中定义，这里仅作注释说明 */
-/* 
- * CAN_MSG_DEVICE_STATUS_ID     (0x980FF16C) - device_status消息，GCU->TSMaster，10ms周期
- * CAN_MSG_TSMASTER_CONTROL_ID  (0x98080100) - tsmaster_control消息，TSMaster->GCU，100ms周期
- * CAN_MSG_TSMASTER_CONTROL2_ID (0x98080108) - tsmaster_control2消息，TSMaster->GCU，100ms周期
- * 
- * 所有消息ID定义请参考 gcu_control_dbc.h
- */
+/* 高压控制器专用配置 */
+#define GCU_DEBUG_MSG_ID           0x980FF16CU     /* 来自DBC的GCU调试消息ID */
+#define GCU_DEBUG_MSG_CYCLE_MS     10U             /* 消息周期时间（毫秒） */
+#define GCU_DEBUG_MSG_LENGTH       8U              /* 消息长度（字节） */
+
+/* 不同频率的CAN消息配置 */
+#define CAN_HIGH_FREQ_MS           5U              /* 高频消息周期：5ms */
+#define CAN_LOW_FREQ_MS            50U             /* 低频消息周期：50ms */
+
+/* ==================== CAN信号透传消息ID定义 ==================== */
+/* 根据CAN信号透出实施方案添加的消息ID */
+#define CAN_MSG_SENSOR_FAST_ID      0x18FF1001U  /* 快速传感器数据 */
+#define CAN_MSG_SENSOR_SLOW_ID      0x18FF1002U  /* 慢速传感器数据 */
+#define CAN_MSG_SYSTEM_DIAG_ID      0x18FF1003U  /* 系统诊断数据 */
+#define CAN_MSG_ACTUATOR_CMD_ID     0x18FF2001U  /* 执行器控制命令 */
+#define CAN_MSG_PARAM_SET_ID        0x18FF2002U  /* 参数设置命令 */
+#define CAN_MSG_PC_CONTROL_CMD_ID   0x18FF2003U  /* PC端控制算法结果命令 */
+
+/* 消息周期定义 */
+#define CAN_MSG_SENSOR_FAST_PERIOD_MS   5U    /* 5ms周期 */
+#define CAN_MSG_SENSOR_SLOW_PERIOD_MS   50U   /* 50ms周期 */
+#define CAN_MSG_SYSTEM_DIAG_PERIOD_MS   100U  /* 100ms周期 */
 
 /* ===========================================  Typedef  ============================================ */
 
@@ -94,20 +100,45 @@ typedef struct {
 } can_cur_node_t;
 
 /*!
- * @brief 高压控制器状态数据结构（兼容旧代码，建议使用device_status_t）
- * @deprecated 此结构体已废弃，请使用 gcu_control_dbc.h 中的 device_status_t
- * 保留此结构体仅用于兼容 CAN_Config_UpdateHPCStatus/GetHPCStatus 函数
+ * @brief 高压控制器状态数据结构
  */
 typedef struct {
     float bypass_ratio;             /* 旁通阀开度 (0-50%) */
     bool reversal_valve_st;         /* 换向阀开关状态 */
-    float gas_pressure;             /* LNG压力 (0-40 MPa) */
-    uint8_t reversal_valve_per_min; /* 换向阀频率 (0-1000 次/分钟) */
-    float gas_temperature;          /* LNG温度 (-40~90°C) */
-    float oil_pressure;             /* 油压 (0-40 MPa) */
-    float oil_temperature;          /* 油温 (-40~90°C) */
+    float gas_pressure;             /* 高压缓冲罐压力 (0-51.1 MPa) */
+    uint8_t reversal_valve_per_min; /* 换向阀频率 (0-200 次/分钟) */
+    float gas_temperature;          /* 高压缓冲罐温度 (-80~90°C) */
+    float oil_pressure;             /* 油压 (0-20 MPa) */
+    float oil_temperature;          /* 油温 (-80~90°C) */
     uint8_t reserve_debug1;         /* 保留字段 */
 } hpc_status_data_t;
+
+/*!
+ * @brief CAN透传传感器数据结构
+ * 根据CAN信号透出实施方案定义
+ */
+typedef struct {
+    float oil_pressure;        /* 油压 (MPa) */
+    float lng_pressure;        /* LNG压力 (MPa) */
+    float oil_temperature;     /* 油温 (°C) */
+    float lng_temperature;     /* LNG温度 (°C) */
+    bool directional_valve_state;  /* 换向阀状态 */
+    uint8_t directional_valve_freq;  /* 换向阀频率 */
+    float bypass_valve_duty;   /* 旁通阀开度 (%) */
+    bool cooler_state;         /* 风冷器状态 */
+    bool system_enabled;       /* 系统使能 */
+    bool fault_active;         /* 故障激活 */
+} can_sensor_data_t;
+
+/*!
+ * @brief CAN透传执行器控制结构
+ */
+typedef struct {
+    bool directional_valve_enable;  /* 换向阀使能 */
+    float bypass_valve_duty;        /* 旁通阀开度 */
+    bool cooler_enable;             /* 风冷器使能 */
+    bool system_enable;             /* 系统使能 */
+} can_actuator_cmd_t;
 
 /*!
  * @brief CAN配置结构体
@@ -119,8 +150,12 @@ typedef struct {
     uint32_t errorCount;                /*!< 错误计数器 */
     uint32_t rxCount;                   /*!< 接收消息计数器 */
     uint32_t txCount;                   /*!< 发送消息计数器 */
-    hpc_status_data_t statusData;       /*!< 高压控制器状态数据（兼容旧代码） */
+    hpc_status_data_t statusData;       /*!< 高压控制器状态数据 */
+    uint32_t cycleCounter;              /*!< 周期性任务循环计数器 */
+    uint32_t lastTxTime;                /*!< 最后发送时间 */
     uint8_t currentBitrateIndex;        /*!< 当前波特率索引 */
+    uint32_t highFreqCounter;           /*!< 高频消息计数器 */
+    uint32_t lowFreqCounter;            /*!< 低频消息计数器 */
 } can_app_config_t;
 
 /* ====================================  Functions declaration  ===================================== */
@@ -210,25 +245,52 @@ bool CAN_Config_ResetController(void);
 /* ====================================  高压控制器专用函数  ===================================== */
 
 /*!
- * @brief 更新高压控制器状态数据（兼容旧代码）
- * @deprecated 建议直接使用 gcu_control_dbc.h 中的结构体和函数
+ * @brief 更新高压控制器状态数据
  * @param[in] statusData: 新的状态数据
  */
 void CAN_Config_UpdateHPCStatus(const hpc_status_data_t *statusData);
 
 /*!
- * @brief 获取当前高压控制器状态数据（兼容旧代码）
- * @deprecated 建议直接使用 gcu_control_dbc.h 中的结构体和函数
+ * @brief 获取当前高压控制器状态数据
  * @param[out] statusData: 当前状态数据
  */
 void CAN_Config_GetHPCStatus(hpc_status_data_t *statusData);
 
 /*!
+ * @brief 发送高压控制器状态消息（使用DBC格式）
+ * @retval true: 成功, false: 失败
+ */
+bool CAN_Config_SendHPCStatus(void);
+
+/*!
  * @brief 发送初始CAN状态消息
- * @deprecated 平台无关化后，传感器数据发送在main.c的Task_10ms_SendSensorData()中实现
  * 在系统初始化完成后立即调用，不等待任务调度
  */
 void CAN_Config_SendInitialStatus(void);
+
+/*!
+ * @brief CAN消息发送任务 - 5ms周期
+ * 提高CAN消息响应速度，解决时序冲突问题
+ */
+void Task_CAN_5ms(void);
+
+/*!
+ * @brief 高频CAN消息发送任务 - 5ms周期
+ * 传输油压、换向阀开关信号、换向阀频率
+ */
+void Task_CAN_HighFreq_5ms(void);
+
+/*!
+ * @brief 低频CAN消息发送任务 - 50ms周期
+ * 传输LNG压力、油温、LNG温度、旁通阀信号
+ */
+void Task_CAN_LowFreq_50ms(void);
+
+/*!
+ * @brief 处理接收到的CAN消息（DBC解码）
+ * @param[in] msg: 接收到的CAN消息
+ */
+void CAN_Config_ProcessReceivedMessage(const can_msg_info_t *msg);
 
 /* ====================================  高级CAN功能  ===================================== */
 
@@ -302,22 +364,66 @@ bool CAN_Config_SetTimeStamp(bool enable, uint8_t clockSrc, uint8_t clockDiv);
  */
 bool CAN_Config_GetErrorStatus(uint8_t *errorWarningLimit, uint8_t *rxErrorCount, uint8_t *txErrorCount);
 
-/* ==================== CAN消息使用说明 ==================== */
-/* 
- * 平台无关化后的CAN消息使用方式：
- * 
- * 1. 发送消息（在main.c的Task_10ms_SendSensorData()中实现）：
- *    - 使用 device_status_t 结构体填充数据
- *    - 使用 device_status_pack() 打包
- *    - 使用 CAN_Config_SendMessage(CAN_MSG_DEVICE_STATUS_ID, ...) 发送
- * 
- * 2. 接收消息（在main.c的CAN_RxCallback()中实现）：
- *    - 使用 CAN_Config_RegisterRxCallback() 注册回调
- *    - 在回调中使用 tsmaster_control_unpack() 或 tsmaster_control2_unpack() 解包
- *    - 使用对应的decode函数解码信号值
- * 
- * 3. 所有消息定义和编解码函数请参考 gcu_control_dbc.h 和 gcu_control_dbc.c
+/* ==================== CAN信号透传函数声明 ==================== */
+/* 根据CAN信号透出实施方案添加的透传函数 */
+
+/*!
+ * @brief 初始化CAN透传模块
  */
+void CANTransparent_Init(void);
+
+/*!
+ * @brief 发送快速传感器数据（5ms周期）
+ * @param[in] data 传感器数据
+ */
+void CANTransparent_SendSensorFast(const can_sensor_data_t* data);
+
+/*!
+ * @brief 发送慢速传感器数据（50ms周期）
+ * @param[in] data 传感器数据
+ */
+void CANTransparent_SendSensorSlow(const can_sensor_data_t* data);
+
+/*!
+ * @brief 发送系统诊断数据（100ms周期）
+ */
+void CANTransparent_SendSystemDiag(void);
+
+/*!
+ * @brief 处理执行器控制命令
+ * @param[in] data 命令数据
+ * @param[in] length 数据长度
+ */
+void CANTransparent_ProcessActuatorCmd(const uint8_t* data, uint8_t length);
+
+/*!
+ * @brief 处理参数设置命令
+ * @param[in] data 参数数据
+ * @param[in] length 数据长度
+ */
+void CANTransparent_ProcessParamSet(const uint8_t* data, uint8_t length);
+
+/*!
+ * @brief 处理PC端控制算法结果命令
+ * @param[in] data 控制命令数据
+ * @param[in] length 数据长度
+ */
+void CANTransparent_ProcessPCControlCmd(const uint8_t* data, uint8_t length);
+
+/*!
+ * @brief CAN透传5ms周期任务
+ */
+void CANTransparent_Task_5ms(void);
+
+/*!
+ * @brief CAN透传50ms周期任务
+ */
+void CANTransparent_Task_50ms(void);
+
+/*!
+ * @brief CAN透传100ms周期任务
+ */
+void CANTransparent_Task_100ms(void);
 
 #endif /* __CAN_CONFIG_H */
 

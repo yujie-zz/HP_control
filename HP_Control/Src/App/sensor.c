@@ -449,6 +449,8 @@ float Sensor_GetLNGPressure(void) {
     return g_sensor_monitor.filtered_data.lng_pressure_mpa;
 }
 
+// 已删除：Sensor_NeedCooling() - 控制逻辑，移至PC端
+// 已删除：Sensor_IsLNGPressureInRange() - 控制逻辑，移至PC端
 
 bool Sensor_CheckDataValidity(void) {
     return g_sensor_monitor.validity.oil_temp_valid && 

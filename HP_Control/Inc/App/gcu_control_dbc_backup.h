@@ -1,11 +1,11 @@
 /**
- * @file gcu_control_dbc_new.h
- * @brief Auto-generated from gcu_control(4).dbc
+ * @file gcu_control_dbc.h
+ * @brief Auto-generated from gcu_control.dbc
  * @note This file was automatically generated. Do not modify manually.
  */
 
-#ifndef GCU_CONTROL_DBC_NEW_H
-#define GCU_CONTROL_DBC_NEW_H
+#ifndef GCU_CONTROL_DBC_H
+#define GCU_CONTROL_DBC_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -22,8 +22,8 @@ extern "C" {
 /* ========================================================================
  * CAN Message IDs
  * ======================================================================== */
-#define CAN_MSG_GCU_DEBUG1_ID       0x980FF16CU  /* 2551181676 */
-#define CAN_MSG_GCU_CONTROL_ID      0x98080100U  /* 2550661376 */
+#define CAN_MSG_GCU_DEBUG1_ID       0x98000E6CU  /* 2551181676 */
+#define CAN_MSG_GCU_CONTROL_ID      0x98000000U  /* 2550661376 */
 
 /* Message cycle times (ms) */
 #define CAN_MSG_GCU_DEBUG1_CYCLE    10U
@@ -35,7 +35,7 @@ extern "C" {
 
 /**
  * @brief gcu_debug1 message signals (GCU -> TSMaster)
-* @note Message ID: 0x98000E6C, DLC: 8, Cycle: 10ms
+ * @note Message ID: 0x98000E6C, DLC: 8, Cycle: 10ms
  * All signal values are as on the CAN bus (raw values).
  */
 typedef struct {
@@ -106,7 +106,7 @@ typedef struct {
 
 /**
  * @brief gcu_control message signals (TSMaster -> GCU)
-* @note Message ID: 0x98000000, DLC: 8, Cycle: 100ms
+ * @note Message ID: 0x18100000, DLC: 8, Cycle: 100ms
  * All signal values are as on the CAN bus (raw values).
  */
 typedef struct {
@@ -151,8 +151,8 @@ typedef struct {
     uint8_t ctrl_system_enable;
     
     /**
-     * 预留字段
-     * Range: 0..1073741823 (0..1073741823 -)
+     * 保留字段
+     * Range: 0..1073741823 (30 bits)
      * Scale: 1
      * Offset: 0
      */
@@ -174,6 +174,28 @@ typedef struct {
 /* ctrl_system_enable */
 #define CTRL_SYSTEM_DISABLE         0U
 #define CTRL_SYSTEM_ENABLE          1U
+
+/* ========================================================================
+ * Function Prototypes
+ * ======================================================================== */
+
+/* ========================================================================
+ * Initialization Functions
+ * ======================================================================== */
+
+/**
+ * @brief Initialize gcu_debug1 structure with default values
+ * @param[in] msg_p Message to init
+ * @return zero(0) on success or (-1) in case of nullptr argument
+ */
+int gcu_debug1_init(gcu_debug1_t *msg_p);
+
+/**
+ * @brief Initialize gcu_control structure with default values
+ * @param[in] msg_p Message to init
+ * @return zero(0) on success or (-1) in case of nullptr argument
+ */
+int gcu_control_init(gcu_control_t *msg_p);
 
 /* ========================================================================
  * Pack/Unpack Functions
@@ -295,4 +317,5 @@ bool gcu_control_ctrl_reserved_is_in_range(uint32_t value);
 }
 #endif
 
-#endif /* GCU_CONTROL_DBC_NEW_H */
+#endif /* GCU_CONTROL_DBC_H */
+

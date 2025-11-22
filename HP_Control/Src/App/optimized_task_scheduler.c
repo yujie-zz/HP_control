@@ -13,7 +13,9 @@
  */
 
 #include "optimized_task_scheduler.h"
+// 已删除: #include "unified_monitor.h" - 模块已删除
 #include "unified_filter.h"
+// 已删除: #include "hydraulic_control.h" - 模块已删除
 #include "valve_control.h"
 #include "can_config.h"
 #include "fault_diagnosis.h"
@@ -31,6 +33,15 @@ static optimized_task_t g_tasks[MAX_TASKS];
 static task_scheduler_status_t g_scheduler_status;
 static bool g_scheduler_running = false;
 static uint32_t g_scheduler_start_time = 0;
+
+// 任务ID定义
+#define TASK_ID_SENSOR_COLLECTION     0
+#define TASK_ID_FAST_PROTECTION      1
+#define TASK_ID_HYDRAULIC_CONTROL     2
+#define TASK_ID_DIRECTIONAL_VALVE     3
+#define TASK_ID_SYSTEM_STATE          4
+#define TASK_ID_SYSTEM_MONITORING     5
+#define TASK_ID_COMMUNICATION         6
 
 /* ==========================================  Functions  =========================================== */
 
